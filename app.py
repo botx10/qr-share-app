@@ -5,8 +5,8 @@ import uuid
 from cryptography.fernet import Fernet
 
 app = Flask(__name__)
-UPLOAD_FOLDER = 'uploads'
-QR_FOLDER = 'static/qrcodes'
+UPLOAD_FOLDER = os.path.join(app.root_path, 'uploads')
+QR_FOLDER = os.path.join(app.root_path, 'static', 'qrcodes')
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 # Create folders if they don’t exist
@@ -54,4 +54,9 @@ from flask import send_file
 def download(filename):
     file_path = os.path.join(UPLOAD_FOLDER, filename)
     return send_file(file_path, as_attachment=True)
+
+
+if __name__ == '__main__':
+    app.run(debug=True, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
