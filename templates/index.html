@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Secure File Sharing via QR</title>
+</head>
+<body>
+    <h2>Upload a File to Generate Secure QR Code</h2>
+    <form method="POST" enctype="multipart/form-data" action="/">
+        <input type="file" name="file" required>
+        <button type="submit">Upload</button>
+    </form>
+
+    {% if qr_path %}
+        <h3>QR Code for Secure Download:</h3>
+        <img src="{{ qr_path }}" width="250">
+        <p><strong>Decryption Key:</strong> {{ key }}</p>
+    {% endif %}
+</body>
+</html>
