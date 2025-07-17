@@ -39,7 +39,7 @@ def index():
             f.write(encrypted_data)
 
         # Generate QR with download link
-        download_url = f"http://{request.host}/download/{filename}"
+        download_url = f"https://qr-share-app.onrender.com/download/{filename}"
         qr = qrcode.make(download_url)
         qr_path = os.path.join(QR_FOLDER, file_id + ".png")
         qr.save(qr_path)
