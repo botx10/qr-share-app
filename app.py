@@ -1,15 +1,17 @@
-from flask import Flask, request, render_template, send_from_directory
+from flask import Flask, request, render_template, send_file
 import qrcode
 import os
 import uuid
 from cryptography.fernet import Fernet
 
 app = Flask(__name__)
+
+# Absolute paths for compatibility with Render
 UPLOAD_FOLDER = os.path.join(app.root_path, 'uploads')
 QR_FOLDER = os.path.join(app.root_path, 'static', 'qrcodes')
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-# Create folders if they don’t exist
+# Create necessary folders at runtime
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(QR_FOLDER, exist_ok=True)
 
@@ -38,25 +40,25 @@ def index():
         with open(file_path, 'wb') as f:
             f.write(encrypted_data)
 
-        # Generate QR with download link
-        download_url = f"https://qr-share-app.onrender.com/download/{filename}"
+        # Generate QR with public Render link
+        # Replace this with your actual Render app URL!
+        render_domain = "https://qr-share-app.onrender.com"
+        download_url = f"{render_domain}/download/{filename}"
+
+        # Save QR image
         qr = qrcode.make(download_url)
         qr_path = os.path.join(QR_FOLDER, file_id + ".png")
         qr.save(qr_path)
 
-        return render_template('index.html', qr_path=qr_path, key=fernet_key.decode())
+        return render_template('index.html', qr_path=os.path.join('static', 'qrcodes', file_id + ".png"), key=fernet_key.decode())
 
     return render_template('index.html')
-
-from flask import send_file
 
 @app.route('/download/<filename>')
 def download(filename):
     file_path = os.path.join(UPLOAD_FOLDER, filename)
     return send_file(file_path, as_attachment=True)
 
-
+# 👇 Required for Render to keep your app running
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
-
-
