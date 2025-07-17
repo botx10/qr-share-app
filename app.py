@@ -48,9 +48,10 @@ def index():
 
     return render_template('index.html')
 
+from flask import send_file
+
 @app.route('/download/<filename>')
 def download(filename):
-    return send_from_directory(UPLOAD_FOLDER, filename)
+    file_path = os.path.join(UPLOAD_FOLDER, filename)
+    return send_file(file_path, as_attachment=True)
 
-if __name__ == '__main__':
-    app.run(debug=True, host="0.0.0.0")
