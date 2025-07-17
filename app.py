@@ -6,18 +6,17 @@ from cryptography.fernet import Fernet
 
 app = Flask(__name__)
 
-# Absolute paths for compatibility with Render
+# Absolute paths for Render compatibility
 UPLOAD_FOLDER = os.path.join(app.root_path, 'uploads')
 QR_FOLDER = os.path.join(app.root_path, 'static', 'qrcodes')
+KEY_STORE = os.path.join(app.root_path, 'keys')  # For storing keys per file
+
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-# Create necessary folders at runtime
+# Ensure folders exist
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(QR_FOLDER, exist_ok=True)
-
-# Generate encryption key
-fernet_key = Fernet.generate_key()
-cipher = Fernet(fernet_key)
+os.makedirs(KEY_STORE, exist_ok=True)
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
@@ -29,36 +28,71 @@ def index():
         if uploaded_file.filename == '':
             return 'No selected file.'
 
-        # Save encrypted file
+        # Generate unique ID for file
         file_id = str(uuid.uuid4())
-        filename = file_id + "_" + uploaded_file.filename
-        file_path = os.path.join(UPLOAD_FOLDER, filename)
+        original_filename = uploaded_file.filename
+        encrypted_filename = f"{file_id}_{original_filename}.enc"
+        encrypted_path = os.path.join(UPLOAD_FOLDER, encrypted_filename)
 
+        # Generate encryption key and encrypt file
+        key = Fernet.generate_key()
+        cipher = Fernet(key)
         file_data = uploaded_file.read()
         encrypted_data = cipher.encrypt(file_data)
 
-        with open(file_path, 'wb') as f:
+        # Save encrypted file
+        with open(encrypted_path, 'wb') as f:
             f.write(encrypted_data)
 
-        # Generate QR with public Render link
-        # Replace this with your actual Render app URL!
-        render_domain = "https://qr-share-app.onrender.com"
-        download_url = f"{render_domain}/download/{filename}"
+        # Store the key in a file (with same ID)
+        with open(os.path.join(KEY_STORE, f"{file_id}.key"), 'wb') as key_file:
+            key_file.write(key)
 
-        # Save QR image
+        # Generate QR with download link
+        render_domain = "https://qr-share-app.onrender.com"  # Replace with your Render domain
+        download_url = f"{render_domain}/download/{file_id}_{original_filename}"
         qr = qrcode.make(download_url)
-        qr_path = os.path.join(QR_FOLDER, file_id + ".png")
+        qr_path = os.path.join(QR_FOLDER, f"{file_id}.png")
         qr.save(qr_path)
 
-        return render_template('index.html', qr_path=os.path.join('static', 'qrcodes', file_id + ".png"), key=fernet_key.decode())
+        return render_template('index.html',
+                               qr_path=os.path.join('static', 'qrcodes', f"{file_id}.png"),
+                               key=key.decode())
 
     return render_template('index.html')
 
 @app.route('/download/<filename>')
 def download(filename):
-    file_path = os.path.join(UPLOAD_FOLDER, filename)
-    return send_file(file_path, as_attachment=True)
+    # Extract the file ID from the filename
+    file_id = filename.split("_")[0]
+    encrypted_path = os.path.join(UPLOAD_FOLDER, filename)
 
-# 👇 Required for Render to keep your app running
+    # Load the key from file
+    try:
+        with open(os.path.join(KEY_STORE, f"{file_id}.key"), 'rb') as key_file:
+            key = key_file.read()
+    except FileNotFoundError:
+        return "Decryption key not found."
+
+    try:
+        # Read encrypted file
+        with open(encrypted_path, 'rb') as f:
+            encrypted_data = f.read()
+
+        # Decrypt the data
+        cipher = Fernet(key)
+        decrypted_data = cipher.decrypt(encrypted_data)
+
+        # Prepare decrypted file to send
+        original_filename = filename.replace(".enc", "")
+        decrypted_path = os.path.join(UPLOAD_FOLDER, f"dec_{original_filename}")
+        with open(decrypted_path, 'wb') as f:
+            f.write(decrypted_data)
+
+        return send_file(decrypted_path, as_attachment=True)
+
+    except Exception as e:
+        return f"Decryption failed: {str(e)}"
+
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
