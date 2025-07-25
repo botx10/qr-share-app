@@ -62,7 +62,8 @@
                value="{{ request.host_url }}download/{{ encrypted_filename }}">
     </div>
 
-    <p><strong>Decryption Key (stored securely on server):</strong> {{ key }}</p>
+    <p><em>This file will automatically decrypt when the QR is scanned or link is clicked.</em></p>
+
     {% endif %}
 </body>
 </html>
