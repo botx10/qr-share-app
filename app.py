@@ -63,7 +63,8 @@ def index():
 
         return render_template('index.html',
                                qr_path=os.path.join('static', 'qrcodes', f"{file_id}.png"),
-                               key=key.decode())
+                               key=key.decode(),
+                               encrypted_filename=encrypted_filename)  # 👈 New line
 
     return render_template('index.html')
 
@@ -107,7 +108,6 @@ def download(filename):
     except Exception as e:
         return f"Decryption failed: {str(e)}"
 
-# ==== Optional: Show total download log ====
 @app.route('/log')
 def show_logs():
     with open(LOG_FILE, 'r') as f:
