@@ -72,7 +72,7 @@ def download(filename):
     try:
         # Paths
         encrypted_path = os.path.join(UPLOAD_FOLDER, filename)
-        file_id = filename.split("_")[0]
+        file_id = filename.replace(".enc", "").split("_")[0]
         key_path = os.path.join(KEY_STORE, f"{file_id}.key")
 
         # Load key
