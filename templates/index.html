@@ -52,20 +52,16 @@
         <h3>QR Code for Secure Download:</h3>
         <img src="{{ qr_path }}" alt="QR Code">
 
-        <!-- Button to download QR code -->
         <br>
         <a href="{{ qr_path }}" download>
             <button class="btn">Download QR Code</button>
         </a>
 
-        <!-- Show direct link (replace .png with .enc) -->
         <p><strong>Or share this link directly:</strong></p>
         <input type="text" readonly
-       value="{{ request.host_url }}download/{{ qr_path.split('/')[-1].replace('.png', '') }}.enc">
-
+               value="{{ request.host_url }}download/{{ encrypted_filename }}">
     </div>
 
-    <!-- Show the decryption key (just FYI) -->
     <p><strong>Decryption Key (stored securely on server):</strong> {{ key }}</p>
     {% endif %}
 </body>
