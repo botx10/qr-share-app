@@ -61,7 +61,8 @@
         <!-- Show direct link (replace .png with .enc) -->
         <p><strong>Or share this link directly:</strong></p>
         <input type="text" readonly
-               value="{{ request.host_url }}download/{{ qr_path.split('/')[-1].replace('.png', '.enc') }}">
+       value="{{ request.host_url }}download/{{ qr_path.split('/')[-1].replace('.png', '') }}.enc">
+
     </div>
 
     <!-- Show the decryption key (just FYI) -->
