@@ -18,11 +18,33 @@
             background: #fff;
             border-radius: 8px;
             box-shadow: 0 0 15px rgba(0,0,0,0.1);
+            position: relative;
         }
-        h2 {
-            text-align: center;
-            color: #333;
+        .admin-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: #333;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
         }
+        .admin-login-form {
+            display: none;
+            margin-top: 15px;
+            padding: 10px;
+            background: #f9f9f9;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        .admin-login-form input {
+            padding: 8px;
+            width: 80%;
+            margin-bottom: 10px;
+        }
+        h2 { text-align: center; color: #333; }
         form {
             display: flex;
             flex-direction: column;
@@ -51,10 +73,7 @@
             text-align: center;
             margin-top: 30px;
         }
-        img {
-            max-width: 100%;
-            height: auto;
-        }
+        img { max-width: 100%; height: auto; }
         .note {
             font-size: 13px;
             color: #777;
@@ -68,6 +87,15 @@
 </head>
 <body>
     <div class="container">
+        <!-- Admin Button -->
+        <button class="admin-btn" onclick="toggleAdminLogin()">Admin</button>
+
+        <!-- Admin Login Form -->
+        <form class="admin-login-form" method="POST" action="/admin-login" id="adminForm">
+            <input type="password" name="password" placeholder="Enter Admin Password" required>
+            <button class="btn" type="submit">Login</button>
+        </form>
+
         <h2>Secure File Sharing via QR</h2>
 
         <form method="POST" enctype="multipart/form-data">
@@ -76,15 +104,9 @@
             <p class="note">⚠️ Max file size: <strong>100MB</strong></p>
             <p class="note">Supported types: PDF, DOCX, TXT, JPG, PNG, ZIP, MP4</p>
 
-            <!-- Access selection -->
-            <label>
-                <input type="radio" name="access" value="public" checked> Public
-            </label>
-            <label>
-                <input type="radio" name="access" value="private"> Private (Password Protected)
-            </label>
+            <label><input type="radio" name="access" value="public" checked> Public</label>
+            <label><input type="radio" name="access" value="private"> Private (Password Protected)</label>
 
-            <!-- Password input shown only when "private" selected -->
             <div class="password-group">
                 <input type="password" name="password" id="password" placeholder="Enter password to protect file">
             </div>
@@ -97,9 +119,7 @@
             <h3>QR Code for Secure Download:</h3>
             <img src="{{ qr_path }}" alt="QR Code">
             <br><br>
-            <a href="{{ qr_path }}" download>
-                <button class="btn">Download QR Code</button>
-            </a>
+            <a href="{{ qr_path }}" download><button class="btn">Download QR Code</button></a>
 
             <p><strong>Or share this link directly:</strong></p>
             <input type="text" id="download-link" readonly value="{{ request.host_url }}download/{{ encrypted_filename }}">
@@ -111,7 +131,15 @@
     </div>
 
     <script>
-        // File name preview
+        function copyLink() {
+            const linkInput = document.getElementById("download-link");
+            linkInput.select();
+            linkInput.setSelectionRange(0, 99999);
+            navigator.clipboard.writeText(linkInput.value).then(() => {
+                alert("Link copied to clipboard!");
+            });
+        }
+
         const fileInput = document.querySelector('input[type="file"]');
         const fileNameDisplay = document.getElementById('file-name');
         fileInput.addEventListener('change', function () {
@@ -120,10 +148,8 @@
                 : "";
         });
 
-        // Show/hide password field
         const radioButtons = document.querySelectorAll('input[name="access"]');
         const passwordGroup = document.querySelector('.password-group');
-
         radioButtons.forEach(radio => {
             radio.addEventListener('change', function () {
                 if (this.value === 'private') {
@@ -136,14 +162,9 @@
             });
         });
 
-        // Copy link function
-        function copyLink() {
-            const linkInput = document.getElementById("download-link");
-            linkInput.select();
-            linkInput.setSelectionRange(0, 99999); // for mobile devices
-            navigator.clipboard.writeText(linkInput.value).then(() => {
-                alert("Link copied to clipboard!");
-            });
+        function toggleAdminLogin() {
+            const form = document.querySelector('.admin-login-form');
+            form.style.display = form.style.display === 'block' ? 'none' : 'block';
         }
     </script>
 </body>
