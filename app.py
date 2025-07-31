@@ -182,4 +182,4 @@ def show_logs():
     return "<h2>Download Stats</h2><ul>" + "".join(f"<li>{k} → {v} downloads</li>" for k, v in logs.items()) + "</ul>"
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=5000)
