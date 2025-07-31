@@ -30,8 +30,7 @@
         }
         input[type="file"],
         input[type="text"],
-        input[type="password"],
-        select {
+        input[type="password"] {
             padding: 10px;
             font-size: 14px;
             border-radius: 5px;
@@ -45,13 +44,17 @@
             font-size: 16px;
             border-radius: 5px;
             cursor: pointer;
+            margin-top: 8px;
         }
         .btn:hover { background-color: #0056b3; }
         .qr-section {
             text-align: center;
             margin-top: 30px;
         }
-        img { max-width: 100%; height: auto; }
+        img {
+            max-width: 100%;
+            height: auto;
+        }
         .note {
             font-size: 13px;
             color: #777;
@@ -97,8 +100,11 @@
             <a href="{{ qr_path }}" download>
                 <button class="btn">Download QR Code</button>
             </a>
+
             <p><strong>Or share this link directly:</strong></p>
-            <input type="text" readonly value="{{ request.host_url }}download/{{ encrypted_filename }}">
+            <input type="text" id="download-link" readonly value="{{ request.host_url }}download/{{ encrypted_filename }}">
+            <button class="btn" onclick="copyLink()">Copy Link</button>
+
             <p><em>This file will automatically decrypt when the QR is scanned or link is clicked.</em></p>
         </div>
         {% endif %}
@@ -129,6 +135,16 @@
                 }
             });
         });
+
+        // Copy link function
+        function copyLink() {
+            const linkInput = document.getElementById("download-link");
+            linkInput.select();
+            linkInput.setSelectionRange(0, 99999); // for mobile devices
+            navigator.clipboard.writeText(linkInput.value).then(() => {
+                alert("Link copied to clipboard!");
+            });
+        }
     </script>
 </body>
 </html>
