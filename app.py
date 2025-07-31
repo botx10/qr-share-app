@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template, send_file
+from flask import Flask, request, render_template, send_file, redirect, url_for
 import qrcode
 import os
 import uuid
@@ -15,6 +15,7 @@ QR_FOLDER = os.path.join(app.root_path, 'static', 'qrcodes')
 KEY_STORE = os.path.join(app.root_path, 'keys')
 LOG_FILE = os.path.join(app.root_path, 'downloads.json')
 UPLOAD_LOG = os.path.join(app.root_path, 'upload_log.json')  # track upload timestamps
+PASSWORD_LOG = os.path.join(app.root_path, 'passwords.json')  # store passwords if private
 
 # === SETUP FOLDERS ===
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -22,7 +23,7 @@ os.makedirs(QR_FOLDER, exist_ok=True)
 os.makedirs(KEY_STORE, exist_ok=True)
 
 # === INIT JSON FILES ===
-for file in [LOG_FILE, UPLOAD_LOG]:
+for file in [LOG_FILE, UPLOAD_LOG, PASSWORD_LOG]:
     if not os.path.exists(file):
         with open(file, 'w') as f:
             json.dump({}, f)
@@ -38,17 +39,16 @@ def cleanup_old_files():
     for filename, timestamp in uploads.items():
         upload_time = datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S")
         if now - upload_time > timedelta(minutes=15):
-            # Delete files
-            encrypted_path = os.path.join(UPLOAD_FOLDER, filename)
-            key_id = filename.split("_")[0]
-            key_path = os.path.join(KEY_STORE, f"{key_id}.key")
-            qr_path = os.path.join(QR_FOLDER, f"{key_id}.png")
-
-            for path in [encrypted_path, key_path, qr_path]:
+            file_id = filename.split("_")[0]
+            paths_to_delete = [
+                os.path.join(UPLOAD_FOLDER, filename),
+                os.path.join(KEY_STORE, f"{file_id}.key"),
+                os.path.join(QR_FOLDER, f"{file_id}.png")
+            ]
+            for path in paths_to_delete:
                 if os.path.exists(path):
                     os.remove(path)
         else:
-            # Keep recent uploads
             updated_uploads[filename] = timestamp
 
     with open(UPLOAD_LOG, 'w') as f:
@@ -59,78 +59,102 @@ def index():
     cleanup_old_files()
 
     if request.method == 'POST':
-        if 'file' not in request.files:
-            return 'No file part in request.'
+        file = request.files['file']
+        if file.filename == '':
+            return 'No file selected.'
 
-        uploaded_file = request.files['file']
-        if uploaded_file.filename == '':
-            return 'No selected file.'
+        access_type = request.form.get('access')  # 'public' or 'private'
+        password = request.form.get('password') if access_type == 'private' else None
 
-        # === Unique ID ===
         file_id = str(uuid.uuid4())
-        original_filename = uploaded_file.filename
+        original_filename = file.filename
         encrypted_filename = f"{file_id}_{original_filename}.enc"
         encrypted_path = os.path.join(UPLOAD_FOLDER, encrypted_filename)
 
-        # === Encrypt & Save ===
+        # Encrypt the file
         key = Fernet.generate_key()
         cipher = Fernet(key)
-        file_data = uploaded_file.read()
+        file_data = file.read()
         encrypted_data = cipher.encrypt(file_data)
 
         with open(encrypted_path, 'wb') as f:
             f.write(encrypted_data)
+        with open(os.path.join(KEY_STORE, f"{file_id}.key"), 'wb') as f:
+            f.write(key)
 
-        with open(os.path.join(KEY_STORE, f"{file_id}.key"), 'wb') as key_file:
-            key_file.write(key)
-
-        # === QR Code ===
-        render_domain = "https://qr-share-app.onrender.com"
-        download_url = f"{render_domain}/download/{encrypted_filename}"
-        qr = qrcode.make(download_url)
+        # Save QR
+        domain = "https://qr-share-app.onrender.com"
+        download_url = f"{domain}/download/{encrypted_filename}"
         qr_path = os.path.join(QR_FOLDER, f"{file_id}.png")
-        qr.save(qr_path)
+        qrcode.make(download_url).save(qr_path)
 
-        # === Save upload time ===
+        # Save upload log
         with open(UPLOAD_LOG, 'r') as f:
             uploads = json.load(f)
-
         uploads[encrypted_filename] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
         with open(UPLOAD_LOG, 'w') as f:
             json.dump(uploads, f)
 
-        return render_template('index.html',
-                               qr_path=os.path.join('static', 'qrcodes', f"{file_id}.png"),
+        # Save password (if private)
+        if access_type == 'private':
+            with open(PASSWORD_LOG, 'r') as f:
+                pw_data = json.load(f)
+            pw_data[encrypted_filename] = password
+            with open(PASSWORD_LOG, 'w') as f:
+                json.dump(pw_data, f)
+
+        return render_template('index.html', qr_path=os.path.join('static', 'qrcodes', f"{file_id}.png"),
                                encrypted_filename=encrypted_filename)
 
     return render_template('index.html')
 
-@app.route('/download/<filename>')
+@app.route('/download/<filename>', methods=['GET', 'POST'])
 def download(filename):
-    cleanup_old_files()  # ensure expired files are removed before download
+    cleanup_old_files()
 
+    # Check if file is password protected
+    with open(PASSWORD_LOG, 'r') as f:
+        passwords = json.load(f)
+    requires_password = filename in passwords
+
+    if request.method == 'POST':
+        entered_pw = request.form.get('password')
+        if not entered_pw or passwords.get(filename) != entered_pw:
+            return "Incorrect password. Access denied."
+
+        return process_file_download(filename)
+
+    if requires_password:
+        return '''
+        <h3>This file is password protected.</h3>
+        <form method="POST">
+            <input type="password" name="password" placeholder="Enter password" required>
+            <button type="submit">Download</button>
+        </form>
+        '''
+    else:
+        return process_file_download(filename)
+
+def process_file_download(filename):
     try:
         encrypted_path = os.path.join(UPLOAD_FOLDER, filename)
         file_id = filename.replace(".enc", "").split("_")[0]
         key_path = os.path.join(KEY_STORE, f"{file_id}.key")
 
-        # Load key & decrypt
-        with open(key_path, 'rb') as key_file:
-            key = key_file.read()
+        with open(key_path, 'rb') as kf:
+            key = kf.read()
+        cipher = Fernet(key)
+
         with open(encrypted_path, 'rb') as f:
             encrypted_data = f.read()
-
-        cipher = Fernet(key)
         decrypted_data = cipher.decrypt(encrypted_data)
 
-        # Save and return decrypted file
         original_filename = filename.replace(".enc", "").split("_", 1)[1]
         decrypted_path = os.path.join(UPLOAD_FOLDER, f"dec_{original_filename}")
         with open(decrypted_path, 'wb') as f:
             f.write(decrypted_data)
 
-        # Update download log
+        # update logs
         with open(LOG_FILE, 'r') as f:
             logs = json.load(f)
         logs[filename] = logs.get(filename, 0) + 1
@@ -140,19 +164,15 @@ def download(filename):
         return send_file(decrypted_path, as_attachment=True)
 
     except FileNotFoundError:
-        return "Error: File or key not found. It may have expired."
+        return "File not found or has expired."
     except Exception as e:
-        return f"Decryption failed: {str(e)}"
+        return f"Error decrypting file: {str(e)}"
 
 @app.route('/log')
 def show_logs():
     with open(LOG_FILE, 'r') as f:
         logs = json.load(f)
-    log_html = "<h2>Download Stats</h2><ul>"
-    for file, count in logs.items():
-        log_html += f"<li>{file} → {count} downloads</li>"
-    log_html += "</ul>"
-    return log_html
+    return "<h2>Download Stats</h2><ul>" + "".join(f"<li>{k} → {v} downloads</li>" for k, v in logs.items()) + "</ul>"
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
