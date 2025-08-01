@@ -206,6 +206,11 @@ def admin_dashboard():
 
     return render_template('admin.html', uploads=uploads, passwords=passwords, logs=logs)
 
+@app.route('/admin/logout')
+def admin_logout():
+    session.pop('admin', None)
+    return redirect('/')
+
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port, debug=True)
