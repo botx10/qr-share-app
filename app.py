@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template, send_file, redirect, session
+from flask import Flask, request, render_template, send_file, redirect, url_for
 import qrcode
 import os
 import uuid
@@ -8,10 +8,9 @@ from datetime import datetime, timedelta
 import bcrypt
 
 app = Flask(__name__)
-app.secret_key = 'your_secret_key_here'
 
 # === CONFIG ===
-app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024
+app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # 100 MB
 UPLOAD_FOLDER = os.path.join(app.root_path, 'uploads')
 QR_FOLDER = os.path.join(app.root_path, 'static', 'qrcodes')
 KEY_STORE = os.path.join(app.root_path, 'keys')
@@ -27,7 +26,7 @@ for file in [LOG_FILE, UPLOAD_LOG, PASSWORD_LOG]:
         with open(file, 'w') as f:
             json.dump({}, f)
 
-# === CLEANUP OLD FILES ===
+# === CLEANUP ===
 def cleanup_old_files():
     now = datetime.now()
 
@@ -50,7 +49,6 @@ def cleanup_old_files():
             for path in paths:
                 if os.path.exists(path):
                     os.remove(path)
-
             pw_data.pop(filename, None)
         else:
             updated_uploads[filename] = timestamp
@@ -80,6 +78,7 @@ def index():
         key = Fernet.generate_key()
         cipher = Fernet(key)
         encrypted_data = cipher.encrypt(file.read())
+
         with open(encrypted_path, 'wb') as f:
             f.write(encrypted_data)
         with open(os.path.join(KEY_STORE, f"{file_id}.key"), 'wb') as f:
@@ -113,7 +112,6 @@ def index():
 @app.route('/download/<filename>', methods=['GET', 'POST'])
 def download(filename):
     cleanup_old_files()
-
     with open(PASSWORD_LOG, 'r') as f:
         pw_data = json.load(f)
 
@@ -142,7 +140,7 @@ def download(filename):
 def process_file_download(filename):
     try:
         encrypted_path = os.path.join(UPLOAD_FOLDER, filename)
-        file_id = filename.replace(".enc", "").split("_")[0]
+        file_id = filename.replace(".enc", "").split("_", 1)[0]
         key_path = os.path.join(KEY_STORE, f"{file_id}.key")
 
         with open(key_path, 'rb') as kf:
@@ -176,22 +174,6 @@ def show_logs():
         logs = json.load(f)
     return "<h2>Download Stats</h2><ul>" + "".join(f"<li>{k} → {v} downloads</li>" for k, v in logs.items()) + "</ul>"
 
-@app.route('/admin-login', methods=['GET', 'POST'])
-def admin_login():
-    if request.method == 'POST':
-        password = request.form.get('password')
-        if password == 'admin123':
-            session['admin'] = True
-            return redirect('/admin')
-        else:
-            return "Incorrect admin password."
-
-    return '''
-    <form method="POST">
-        <input type="password" name="password" placeholder="Enter admin password" required>
-        <button type="submit">Login</button>
-    </form>
-    '''
-
 if __name__ == '__main__':
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host='0.0.0.0', port=port, debug=True)
