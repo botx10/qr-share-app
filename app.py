@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template, send_file, redirect
+from flask import Flask, request, render_template, send_file, redirect, session
 import qrcode
 import os
 import uuid
@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 import bcrypt
 
 app = Flask(__name__)
+app.secret_key = 'your_secret_key_here'
 
 # === CONFIG ===
 app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024
@@ -50,9 +51,7 @@ def cleanup_old_files():
                 if os.path.exists(path):
                     os.remove(path)
 
-            # remove from password log if present
             pw_data.pop(filename, None)
-
         else:
             updated_uploads[filename] = timestamp
 
@@ -78,7 +77,6 @@ def index():
         encrypted_filename = f"{file_id}_{file.filename}.enc"
         encrypted_path = os.path.join(UPLOAD_FOLDER, encrypted_filename)
 
-        # Encrypt file
         key = Fernet.generate_key()
         cipher = Fernet(key)
         encrypted_data = cipher.encrypt(file.read())
@@ -87,20 +85,17 @@ def index():
         with open(os.path.join(KEY_STORE, f"{file_id}.key"), 'wb') as f:
             f.write(key)
 
-        # Save QR
         domain = "https://qr-share-app.onrender.com"
         download_url = f"{domain}/download/{encrypted_filename}"
         qr_path = os.path.join(QR_FOLDER, f"{file_id}.png")
         qrcode.make(download_url).save(qr_path)
 
-        # Save logs
         with open(UPLOAD_LOG, 'r') as f:
             uploads = json.load(f)
         uploads[encrypted_filename] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         with open(UPLOAD_LOG, 'w') as f:
             json.dump(uploads, f)
 
-        # Save hashed password if private
         if access_type == 'private' and password_raw:
             hashed_pw = bcrypt.hashpw(password_raw.encode(), bcrypt.gensalt()).decode()
             with open(PASSWORD_LOG, 'r') as f:
@@ -181,5 +176,22 @@ def show_logs():
         logs = json.load(f)
     return "<h2>Download Stats</h2><ul>" + "".join(f"<li>{k} → {v} downloads</li>" for k, v in logs.items()) + "</ul>"
 
+@app.route('/admin-login', methods=['GET', 'POST'])
+def admin_login():
+    if request.method == 'POST':
+        password = request.form.get('password')
+        if password == 'admin123':
+            session['admin'] = True
+            return redirect('/admin')
+        else:
+            return "Incorrect admin password."
+
+    return '''
+    <form method="POST">
+        <input type="password" name="password" placeholder="Enter admin password" required>
+        <button type="submit">Login</button>
+    </form>
+    '''
+
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    app.run(debug=True)
