@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin Dashboard - Secure QR Sharing</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 30px;
+            background-color: #f0f2f5;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 40px;
+        }
+        th, td {
+            padding: 12px;
+            border: 1px solid #ccc;
+            text-align: left;
+        }
+        th {
+            background-color: #007bff;
+            color: white;
+        }
+        .delete-btn {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .delete-btn:hover {
+            background-color: #a71d2a;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔐 Admin Dashboard</h1>
+
+    <h2>📥 Uploaded Files</h2>
+    <table>
+        <tr>
+            <th>Filename</th>
+            <th>Uploaded On</th>
+            <th>Action</th>
+        </tr>
+        {% for fname, time in uploads.items() %}
+        <tr>
+            <td>{{ fname }}</td>
+            <td>{{ time }}</td>
+            <td><a href="/admin/delete/{{ fname }}"><button class="delete-btn">Delete</button></a></td>
+        </tr>
+        {% endfor %}
+    </table>
+
+    <h2>🔒 Password-Protected Files</h2>
+    <table>
+        <tr>
+            <th>Filename</th>
+            <th>Hashed Password</th>
+        </tr>
+        {% for fname, hashed in passwords.items() %}
+        <tr>
+            <td>{{ fname }}</td>
+            <td>{{ hashed }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+
+    <h2>📊 Download Logs</h2>
+    <table>
+        <tr>
+            <th>Filename</th>
+            <th>Downloads</th>
+        </tr>
+        {% for fname, count in logs.items() %}
+        <tr>
+            <td>{{ fname }}</td>
+            <td>{{ count }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>
