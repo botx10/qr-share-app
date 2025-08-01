@@ -10,7 +10,26 @@
             max-width: 600px;
             margin: auto;
             background-color: #f9f9f9;
+            position: relative;
         }
+        .top-bar {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 10px;
+        }
+        .admin-btn {
+            background-color: #343a40;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-size: 14px;
+        }
+        .admin-btn:hover {
+            background-color: #23272b;
+        }
+
         h2 {
             color: #333;
         }
@@ -65,6 +84,11 @@
     </style>
 </head>
 <body>
+
+    <div class="top-bar">
+        <a href="/admin-login" class="admin-btn">Admin</a>
+    </div>
+
     <h2>🔐 Secure File Sharing via QR</h2>
     <form method="POST" enctype="multipart/form-data">
         <label>Select file to upload (Max 100MB):</label>
