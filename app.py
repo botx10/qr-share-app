@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template, send_file, redirect, url_for
+from flask import Flask, request, render_template, send_file, redirect, url_for, session
 import qrcode
 import os
 import uuid
@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 import bcrypt
 
 app = Flask(__name__)
+app.secret_key = 'your_secret_key_here'
 
 # === CONFIG ===
 app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # 100 MB
@@ -173,6 +174,23 @@ def show_logs():
     with open(LOG_FILE, 'r') as f:
         logs = json.load(f)
     return "<h2>Download Stats</h2><ul>" + "".join(f"<li>{k} → {v} downloads</li>" for k, v in logs.items()) + "</ul>"
+
+@app.route('/admin-login', methods=['GET', 'POST'])
+def admin_login():
+    if request.method == 'POST':
+        password = request.form.get('password')
+        if password == 'admin123':
+            session['admin'] = True
+            return redirect('/admin')
+        else:
+            return "Incorrect admin password.", 401
+
+    return '''
+    <form method="POST">
+        <input type="password" name="password" placeholder="Enter admin password" required>
+        <button type="submit">Login</button>
+    </form>
+    '''
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 10000))
