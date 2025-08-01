@@ -4,167 +4,108 @@
     <title>Secure File Sharing via QR</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        * { box-sizing: border-box; }
         body {
             font-family: Arial, sans-serif;
-            background: #f4f4f4;
-            margin: 0;
-            padding: 0;
+            padding: 20px;
+            max-width: 600px;
+            margin: auto;
+            background-color: #f9f9f9;
         }
-        .container {
-            max-width: 500px;
-            margin: 40px auto;
-            padding: 25px;
-            background: #fff;
-            border-radius: 8px;
-            box-shadow: 0 0 15px rgba(0,0,0,0.1);
-            position: relative;
+        h2 {
+            color: #333;
         }
-        .admin-btn {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            background: #333;
-            color: white;
-            border: none;
-            padding: 6px 12px;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        .admin-login-form {
-            display: none;
-            margin-top: 15px;
-            padding: 10px;
-            background: #f9f9f9;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-        }
-        .admin-login-form input {
-            padding: 8px;
-            width: 80%;
-            margin-bottom: 10px;
-        }
-        h2 { text-align: center; color: #333; }
         form {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
         }
-        input[type="file"],
-        input[type="text"],
-        input[type="password"] {
+        input[type="file"], select, input[type="password"] {
+            width: 100%;
             padding: 10px;
-            font-size: 14px;
-            border-radius: 5px;
-            border: 1px solid #ccc;
+            margin-top: 12px;
         }
         .btn {
             background-color: #007bff;
             color: white;
             border: none;
-            padding: 12px;
-            font-size: 16px;
+            padding: 10px 15px;
             border-radius: 5px;
+            margin-top: 12px;
             cursor: pointer;
-            margin-top: 8px;
         }
-        .btn:hover { background-color: #0056b3; }
+        .btn:hover {
+            background-color: #0056b3;
+        }
         .qr-section {
-            text-align: center;
             margin-top: 30px;
+            text-align: center;
         }
-        img { max-width: 100%; height: auto; }
-        .note {
-            font-size: 13px;
-            color: #777;
-            margin: 0;
+        .info {
+            font-size: 14px;
+            color: #666;
+            margin-top: 10px;
         }
-        .password-group { display: none; }
-        @media screen and (max-width: 600px) {
-            .container { margin: 20px; padding: 20px; }
+        img {
+            max-width: 100%;
+            margin-top: 20px;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            margin-top: 12px;
+        }
+        .copy-btn {
+            background-color: #28a745;
+            margin-top: 10px;
+        }
+        .copy-btn:hover {
+            background-color: #218838;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <!-- Admin Button -->
-        <button class="admin-btn" onclick="toggleAdminLogin()">Admin</button>
+    <h2>🔐 Secure File Sharing via QR</h2>
+    <form method="POST" enctype="multipart/form-data">
+        <label>Select file to upload (Max 100MB):</label>
+        <input type="file" name="file" required>
+        <p class="info">Supported: PDF, DOCX, PNG, JPG, TXT, ZIP, etc.</p>
 
-        <!-- Admin Login Form -->
-        <form class="admin-login-form" method="POST" action="/admin-login" id="adminForm">
-            <input type="password" name="password" placeholder="Enter Admin Password" required>
-            <button class="btn" type="submit">Login</button>
-        </form>
+        <label>Access Type:</label>
+        <select name="access" required>
+            <option value="public">Public (no password)</option>
+            <option value="private">Private (password protected)</option>
+        </select>
 
-        <h2>Secure File Sharing via QR</h2>
+        <label>Password (only if private):</label>
+        <input type="password" name="password">
 
-        <form method="POST" enctype="multipart/form-data">
-            <input type="file" name="file" required accept=".pdf,.docx,.txt,.jpg,.png,.zip,.mp4">
-            <p id="file-name" class="note"></p>
-            <p class="note">⚠️ Max file size: <strong>100MB</strong></p>
-            <p class="note">Supported types: PDF, DOCX, TXT, JPG, PNG, ZIP, MP4</p>
+        <button class="btn" type="submit">Upload & Generate QR</button>
+    </form>
 
-            <label><input type="radio" name="access" value="public" checked> Public</label>
-            <label><input type="radio" name="access" value="private"> Private (Password Protected)</label>
+    {% if qr_path %}
+    <div class="qr-section">
+        <h3>✅ QR Code for Secure Download:</h3>
+        <img src="{{ qr_path }}" alt="QR Code">
 
-            <div class="password-group">
-                <input type="password" name="password" id="password" placeholder="Enter password to protect file">
-            </div>
+        <a href="{{ qr_path }}" download>
+            <button class="btn">Download QR Code</button>
+        </a>
 
-            <button class="btn" type="submit">Upload</button>
-        </form>
-
-        {% if qr_path %}
-        <div class="qr-section">
-            <h3>QR Code for Secure Download:</h3>
-            <img src="{{ qr_path }}" alt="QR Code">
-            <br><br>
-            <a href="{{ qr_path }}" download><button class="btn">Download QR Code</button></a>
-
-            <p><strong>Or share this link directly:</strong></p>
-            <input type="text" id="download-link" readonly value="{{ request.host_url }}download/{{ encrypted_filename }}">
-            <button class="btn" onclick="copyLink()">Copy Link</button>
-
-            <p><em>This file will automatically decrypt when the QR is scanned or link is clicked.</em></p>
-        </div>
-        {% endif %}
+        <p><strong>Or share this link:</strong></p>
+        <input type="text" id="downloadLink" readonly value="{{ request.host_url }}download/{{ encrypted_filename }}">
+        <button class="btn copy-btn" onclick="copyLink()">Copy Link</button>
+        <p class="info">This file will auto-delete after 15 minutes.</p>
     </div>
+    {% endif %}
 
     <script>
         function copyLink() {
-            const linkInput = document.getElementById("download-link");
-            linkInput.select();
-            linkInput.setSelectionRange(0, 99999);
-            navigator.clipboard.writeText(linkInput.value).then(() => {
-                alert("Link copied to clipboard!");
-            });
-        }
-
-        const fileInput = document.querySelector('input[type="file"]');
-        const fileNameDisplay = document.getElementById('file-name');
-        fileInput.addEventListener('change', function () {
-            fileNameDisplay.textContent = fileInput.files.length > 0
-                ? "Selected file: " + fileInput.files[0].name
-                : "";
-        });
-
-        const radioButtons = document.querySelectorAll('input[name="access"]');
-        const passwordGroup = document.querySelector('.password-group');
-        radioButtons.forEach(radio => {
-            radio.addEventListener('change', function () {
-                if (this.value === 'private') {
-                    passwordGroup.style.display = 'block';
-                    document.getElementById('password').setAttribute('required', true);
-                } else {
-                    passwordGroup.style.display = 'none';
-                    document.getElementById('password').removeAttribute('required');
-                }
-            });
-        });
-
-        function toggleAdminLogin() {
-            const form = document.querySelector('.admin-login-form');
-            form.style.display = form.style.display === 'block' ? 'none' : 'block';
+            const link = document.getElementById('downloadLink');
+            link.select();
+            link.setSelectionRange(0, 99999);
+            document.execCommand('copy');
+            alert('Link copied to clipboard!');
         }
     </script>
 </body>
