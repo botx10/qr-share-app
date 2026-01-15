@@ -42,16 +42,6 @@ This project allows users to securely upload and share encrypted files using QR 
 
 ---
 
-## 🔐 Admin Access
-
-To access the admin dashboard:
-1. Click **Admin** on the homepage.
-2. Use the default password: `admin123`
-
-(Admin password is securely managed on server.)
-
----
-
 ## 📁 File Structure
 
 ```
@@ -93,7 +83,7 @@ python app.py
 
 ## 🧠 Made With
 
-❤️ By Aryaman Menon | MCA @ RV Institute of Technology and Management
+ By Aryaman Menon | 
 
 ---
 
