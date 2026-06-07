@@ -42,29 +42,13 @@ This project allows users to securely upload and share encrypted files using QR 
 
 ---
 
-## 📁 File Structure
-
-```
-project-root/
-│
-├── templates/
-│   └── index.html, admin.html
-├── static/qrcodes/
-├── uploads/
-├── keys/
-├── app.py
-├── passwords.json
-├── upload_log.json
-├── downloads.json
-├── requirements.txt
-```
 
 ---
 
 ## 🛠 How to Run Locally
 
 ```bash
-git clone https://github.com/your-username/qr-file-share.git
+git clone https://github.com/botx10/qr-share-app.git
 cd qr-file-share
 pip install -r requirements.txt
 python app.py
@@ -83,7 +67,7 @@ python app.py
 
 ## 🧠 Made With
 
- By Aryaman Menon | 
+ By Aryaman Menon | linkedin.com/in/aryamanmenon
 
 ---
 
