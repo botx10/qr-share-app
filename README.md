@@ -35,16 +35,17 @@ This project allows users to securely upload and share encrypted files using QR 
 ## 📸 Screenshots
 
 ### Upload Interface
-![Upload](screenshots/upload-before.png)
+![Upload](screenshots/upload%20image%20(before%20upload).png)
 
 ### QR Code Generated
-![QR Code](screenshots/qr-code.png)
+![QR Code](screenshots/OR%20code%20display%20after%20upload.png)
 
 ### Password Protection
-![Password](screenshots/password-prompt.png)
+![Password](screenshots/password%20input%20prompt%20.png)
 
 ### Admin Dashboard
-![Admin](screenshots/admin-dashboard.png)
+![Admin](screenshots/Admin%20dashboard.png)
+
 ---
 
 ---
